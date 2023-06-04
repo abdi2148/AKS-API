@@ -1,0 +1,97 @@
+# File: azure-pipeline.yml
+
+trigger:
+  branches:
+    include:
+      - main
+
+pr:
+  branches:
+    include:
+      - '*'
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - name: 'FrontendRepo'
+    value: 'https://github.com/abdi2148/AKS-Web'
+  - name: 'BackendRepo'
+    value: 'https://github.com/abdi2148/AKS-API'
+
+stages:
+  - stage: Build
+    displayName: 'Build Frontend'
+    jobs:
+      - job: BuildFrontend
+        displayName: 'Build Frontend'
+        steps:
+          - checkout: self
+            fetchDepth: 1
+
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '12.x'
+            displayName: 'Install Node.js'
+
+          - script: |
+              cd $(Build.SourcesDirectory)/AKS-Web
+              npm ci
+              npm run build
+            displayName: 'Build Frontend'
+
+          - task: PublishPipelineArtifact@1
+            inputs:
+              artifactName: 'frontend'
+              targetPath: '$(Build.SourcesDirectory)/AKS-Web/dist'
+
+  - stage: Deploy
+    displayName: 'Deploy Backend and Frontend'
+    dependsOn: Build
+    jobs:
+      - job: DeployBackend
+        displayName: 'Deploy Backend'
+        steps:
+          - checkout: self
+            fetchDepth: 1
+
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '12.x'
+            displayName: 'Install Node.js'
+
+          - script: |
+              cd $(Build.SourcesDirectory)/AKS-API
+              npm ci
+              # Perform any backend-specific build steps or tests if necessary
+
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'Azure subscription 1'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                # Perform any Azure-specific setup or configuration steps
+                az aks get-credentials --name aksworkshop-15549 --resource-group resource-group-name
+                kubectl apply -f $(Build.SourcesDirectory)/AKS-API/deployment.yaml   # Replace with your backend deployment YAML file path
+
+      - job: DeployFrontend
+        displayName: 'Deploy Frontend'
+        steps:
+          - checkout: self
+            fetchDepth: 1
+
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              artifactName: 'frontend'
+              targetPath: '$(Build.SourcesDirectory)/AKS-Web/dist'
+
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'azure-subscription-name'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                # Perform any Azure-specific setup or configuration steps
+                az aks get-credentials --name aksworkshop-15549 --resource-group aksworkshop
+                kubectl apply -f $(Build.SourcesDirectory)/AKS-Web/deployment
