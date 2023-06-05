@@ -67,7 +67,7 @@ stages:
 
           - task: AzureCLI@2
             inputs:
-              azureSubscription: 'Azure subscription 1'
+              azureSubscription: '4326e110-a7a3-45d7-ba02-719b07e1795c'
               scriptType: 'bash'
               scriptLocation: 'inlineScript'
               inlineScript: |
@@ -88,7 +88,7 @@ stages:
 
           - task: AzureCLI@2
             inputs:
-              azureSubscription: 'Azure subscription 1'
+              azureSubscription: '4326e110-a7a3-45d7-ba02-719b07e1795c'
               scriptType: 'bash'
               scriptLocation: 'inlineScript'
               inlineScript: |
